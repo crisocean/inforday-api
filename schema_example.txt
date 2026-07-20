@@ -1,0 +1,105 @@
+-- ============================================================================
+-- 1. EXTENSÕES DO BANCO DE DADOS
+-- ============================================================================
+-- Habilita a geração nativa de UUIDs (segurança contra enumeração de IDs)
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- ============================================================================
+-- 2. TABELA PRINCIPAL: INSCRIÇÕES NO EVENTO (ALUNOS / PARTICIPANTES)
+-- ============================================================================
+-- Esta é a tabela que recebe os dados do Front-end e gera o QR Code geral do Inforday.
+CREATE TABLE IF NOT EXISTS inscricoes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    nome_completo VARCHAR(150) NOT NULL,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    cpf VARCHAR(11) NOT NULL UNIQUE,         -- Apenas números limpos (ex: 12345678900)
+    telefone VARCHAR(15),                    -- DDI + DDD + Número apenas com dígitos
+    
+    -- Campos estratégicos para as regras de negócio
+    serie_categoria VARCHAR(50) NOT NULL DEFAULT 'GERAL', -- Ex: '1_ANO', '2_ANO', '3_ANO', 'GERAL'
+    tipo_participante VARCHAR(50) NOT NULL DEFAULT 'ALUNO', -- Ex: 'ALUNO', 'PROFESSOR', 'VISITANTE'
+    
+    -- Segurança e Controle de Acesso (Check-in)
+    codigo_qrcode VARCHAR(64) NOT NULL UNIQUE,
+    status VARCHAR(20) NOT NULL DEFAULT 'CONFIRMADA' CHECK (status IN ('CONFIRMADA', 'CANCELADA', 'CHECKIN_REALIZADO')),
+    data_checkin TIMESTAMPTZ NULL,
+    
+    -- Auditoria
+    criado_em TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================================================
+-- 3. TABELA DE ATIVIDADES (WORKSHOPS E PALESTRAS)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS atividades (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    nome VARCHAR(150) NOT NULL,
+    descricao TEXT,
+    data_hora_inicio TIMESTAMPTZ NOT NULL,
+    data_hora_fim TIMESTAMPTZ NOT NULL,
+    local VARCHAR(100) NOT NULL,
+    tipo VARCHAR(20) NOT NULL CHECK (tipo IN ('WORKSHOP', 'PALESTRA')),
+    
+    -- Se NULL = vagas ilimitadas (padrão para palestras). Se preenchido = limite do workshop.
+    vagas_totais INTEGER NULL CHECK (vagas_totais > 0 OR vagas_totais IS NULL),
+    
+    -- Flag para permitir transição futura: quando virar TRUE, exigirá inscrição individual na palestra.
+    requer_inscricao_individual BOOLEAN DEFAULT FALSE,
+    
+    criado_em TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================================================
+-- 4. TABELA DE COTAS POR CATEGORIA (FLEXIBILIDADE DE VAGAS NOS WORKSHOPS)
+-- ============================================================================
+-- Permite dividir as 18 vagas em 6 para 1º ano, 6 para 2º e 6 para 3º sem engessar o banco.
+CREATE TABLE IF NOT EXISTS cotas_atividades (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    atividade_id UUID NOT NULL REFERENCES atividades(id) ON DELETE CASCADE,
+    categoria_alvo VARCHAR(50) NOT NULL,     -- Deve casar com o 'serie_categoria' da tabela inscricoes
+    quantidade_vagas INTEGER NOT NULL CHECK (quantidade_vagas >= 0),
+    
+    CONSTRAINT unq_atividade_categoria UNIQUE (atividade_id, categoria_alvo)
+);
+
+-- ============================================================================
+-- 5. TABELA DE PALESTRANTES
+-- ============================================================================
+-- Regra: 1 Palestrante só pode estar vinculado a NO MÁXIMO 1 atividade.
+CREATE TABLE IF NOT EXISTS palestrantes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    nome VARCHAR(150) NOT NULL,
+    bio TEXT,
+    email VARCHAR(150) UNIQUE,
+    foto_url VARCHAR(255),
+    
+    -- A FK aqui garante fisicamente que ele nunca estará em dois workshops/palestras ao mesmo tempo.
+    atividade_id UUID NULL REFERENCES atividades(id) ON DELETE SET NULL,
+    
+    criado_em TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================================================
+-- 6. TABELA DE VÍNCULO: INSCRIÇÕES EM ATIVIDADES (ALUNO <-> WORKSHOP)
+-- ============================================================================
+-- Conecta o Aluno (tabela inscricoes) ao Workshop escolhido (tabela atividades).
+CREATE TABLE IF NOT EXISTS inscricoes_atividades (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    inscricao_id UUID NOT NULL REFERENCES inscricoes(id) ON DELETE CASCADE,
+    atividade_id UUID NOT NULL REFERENCES atividades(id) ON DELETE CASCADE,
+    
+    status VARCHAR(20) NOT NULL DEFAULT 'CONFIRMADA' CHECK (status IN ('CONFIRMADA', 'CANCELADA', 'FILA_ESPERA')),
+    data_inscricao TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Impede que o mesmo aluno se inscreva 2 vezes no mesmo workshop
+    CONSTRAINT unq_inscricao_atividade UNIQUE (inscricao_id, atividade_id)
+);
+
+-- ============================================================================
+-- 7. ÍNDICES DE ALTA PERFORMANCE
+-- ============================================================================
+-- Acelera as buscas quando a API for validar duplicidades, vagas ou fazer o check-in no leitor.
+CREATE INDEX IF NOT EXISTS idx_inscricoes_email ON inscricoes(email);
+CREATE INDEX IF NOT EXISTS idx_inscricoes_cpf ON inscricoes(cpf);
+CREATE INDEX IF NOT EXISTS idx_inscricoes_qrcode ON inscricoes(codigo_qrcode);
+CREATE INDEX IF NOT EXISTS idx_inscricoes_atividades_busca ON inscricoes_atividades(atividade_id, status);
