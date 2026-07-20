@@ -1,0 +1,24 @@
+# Arquivos de Ambiente (NUNCA DEVEM IR PRO GITHUB)
+.env
+*.env
+.env.*
+
+# Ambiente Virtual Python (Muitos arquivos, pesado e desnecessário)
+venv/
+env/
+ENV/
+
+# Arquivos de Cache e Compilação do Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Arquivos de Configuração de IDEs e Extensões
+.vscode/
+.idea/
+*.sqlite3
+*.db
+
+# Arquivos temporários do Sistema Operacional
+.DS_Store
+Thumbs.db
