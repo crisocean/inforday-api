@@ -62,3 +62,31 @@ async def criar_inscricao(dados: InscricaoCreate, db: AsyncConnection = Depends(
         await db.commit()
 
         return nova_inscricao
+    
+@router.get("/{cpf}", response_model=InscricaoResponse, status_code=status.HTTP_200_OK)
+async def buscar_inscricao_por_cpf(cpf: str, db: AsyncConnection = Depends(get_db)):
+    """Busca os dados de uma inscrição realizada a partir do CPF do participante."""
+    cpf_limpo = limpar_digitos(cpf)
+    
+    if len(cpf_limpo) != 11:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="CPF inválido. Deve conter exatamente 11 dígitos numéricos."
+        )
+
+    async with db.cursor() as cur:
+        query_select = """
+            SELECT id, nome_completo, email, cpf, serie_categoria, codigo_qrcode, status, criado_em 
+            FROM inscricoes 
+            WHERE cpf = %s;
+        """
+        await cur.execute(query_select, (cpf_limpo,))
+        inscricao = await cur.fetchone()
+
+        if not inscricao:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Inscrição não encontrada para o CPF informado."
+            )
+
+        return inscricao
