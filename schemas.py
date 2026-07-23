@@ -24,3 +24,14 @@ class InscricaoResponse(BaseModel):
 
     # Essa configuração permite que o Pydantic leia os dados que virão lá do PostgreSQL
     model_config = ConfigDict(from_attributes=True)
+    
+    # 3. O que nós recebemos no momento em que alguém tenta entrar no evento
+class CheckinRequest(BaseModel):
+    codigo_qrcode: str = Field(..., description="Hash de 64 caracteres lido pelo scanner do evento")
+
+# 4. A resposta visual que devolveremos para a tela do segurança/organizador
+class CheckinResponse(BaseModel):
+    status: str
+    mensagem: str
+    aluno: Optional[str] = None
+    data_hora: Optional[datetime] = None
