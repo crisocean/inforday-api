@@ -1,3 +1,4 @@
+from routers import incricoes, chekin
 from fastapi import FastAPI, Depends, HTTPException, status
 from contextlib import asynccontextmanager
 from psycopg import AsyncConnection
@@ -23,6 +24,7 @@ app = FastAPI(
 
 # 2. Conectando a rota de inscrições no servidor principal
 app.include_router(incricoes.router)
+app.include_router(chekin.router)
 
 @app.get("/", tags=["Health Check"])
 async def health_check(db: AsyncConnection = Depends(get_db)):
