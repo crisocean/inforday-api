@@ -3,6 +3,8 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from contextlib import asynccontextmanager
 from psycopg import AsyncConnection
 from database import pool, get_db
+from routers.chekin import router as checkin_router
+from routers.chekin_atividade import router as checkin_atividade_router
 
 # 1. Importando o roteador que você acabou de criar
 from routers import incricoes
@@ -24,8 +26,8 @@ app = FastAPI(
 
 # 2. Conectando a rota de inscrições no servidor principal
 app.include_router(incricoes.router)
-app.include_router(chekin.router)
-
+app.include_router(checkin_router)
+app.include_router(checkin_atividade_router)
 @app.get("/", tags=["Health Check"])
 async def health_check(db: AsyncConnection = Depends(get_db)):
     try:

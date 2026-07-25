@@ -2,6 +2,12 @@ from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import Optional
 from uuid import UUID
 from datetime import datetime
+from pydantic import UUID4
+
+#model do chekin das atividades
+class CheckinAtividadeRequest(BaseModel):
+    codigo_qrcode: str
+    atividade_id: UUID4
 
 # 1. O que o Front-end tem permissão para nos enviar
 class InscricaoCreate(BaseModel):
