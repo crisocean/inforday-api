@@ -95,6 +95,16 @@ CREATE TABLE IF NOT EXISTS inscricoes_atividades (
     CONSTRAINT unq_inscricao_atividade UNIQUE (inscricao_id, atividade_id)
 );
 
+CREATE TABLE IF NOT EXISTS inscricoes_atividades (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    inscricao_id UUID NOT NULL REFERENCES inscricoes(id) ON DELETE CASCADE,
+    atividade_id UUID NOT NULL REFERENCES atividades(id) ON DELETE CASCADE,
+
+    status VARCHAR(20) NOT NULL DEFAULT 'CONFIRMADA' CHECK (status IN ('CONFIRMADA', 'CANCELADA', 'FILA_ESPERA')),
+    data_inscricao TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    data_checkin TIMESTAMPTZ DEFAULT NULL
+    CONSTRAINT unq_inscricao_atividade UNIQUE (inscricao_id, atividade_id)
+);
 -- ============================================================================
 -- 7. ÍNDICES DE ALTA PERFORMANCE
 -- ============================================================================
