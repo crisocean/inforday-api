@@ -5,7 +5,7 @@ from psycopg import AsyncConnection
 from database import pool, get_db
 from routers.chekin import router as checkin_router
 from routers.chekin_atividade import router as checkin_atividade_router
-
+from routers.testes import router as testes_router #temp
 # 1. Importando o roteador que você acabou de criar
 from routers import incricoes
 
@@ -28,6 +28,7 @@ app = FastAPI(
 app.include_router(incricoes.router)
 app.include_router(checkin_router)
 app.include_router(checkin_atividade_router)
+app.include_router(testes_router) #temp
 @app.get("/", tags=["Health Check"])
 async def health_check(db: AsyncConnection = Depends(get_db)):
     try:

@@ -1,0 +1,34 @@
+[project]
+name = "inforday-api"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "crisocean",email = "crisplusz01@gmail.com"}
+]
+requires-python = ">=3.14, <4.0"
+dependencies = [
+    "fastapi (>=0.141.1,<0.142.0)",
+    "uvicorn[standard] (>=0.52.4,<0.53.0)",
+    "psycopg[binary,pool] (>=3.3.4,<4.0.0)",
+    "pydantic (>=2.13.4,<3.0.0)",
+    "pydantic-settings (>=2.15.0,<3.0.0)",
+    "python-dotenv (>=1.2.3,<2.0.0)",
+    "qrcode (>=8.2,<9.0)",
+    "pillow (>=12.3.0,<13.0.0)",
+    "email-validator (>=2.3.0,<3.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "taskipy (>=1.14.1,<2.0.0)",
+    "ruff (>=0.16.5,<0.17.0)"
+]
+
+[tool.taskipy.tasks]
+run = "uvicorn main:app --reload"
+lint = "ruff check . && ruff format ."
